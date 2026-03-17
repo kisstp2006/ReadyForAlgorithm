@@ -102,12 +102,42 @@ class Program
 
         // Meghatározom a kezdéstől az útvonal algoritmusát
 
-        List<(int x, int y)> path = FindPath(grid, startX, startY, goals);
+        List<(int x, int y)> teljespath = new List<(int x, int y)>(); // Egy teljes útvonal tartalmazására létrejött üres lista, majd beállítjuk a rover kezdőpontját
+        int roverX = startX;
+        int roverY = startY;
 
+        // Amíg még vannak célok, amiket még meg kell látogatni, avagy be kell szednünk
+        // Addig keressük a legközelebbi célpontot hozzánk képest, és egy útvonalat is a FindPath function alapján
+        // A Math.Abs, kivonva a cél X és Y-át a rover X és Y-ából, megadja, hogy milyen messze van tőlünk a legközelebbi célpont
+        // A First() függvény az elsőt keresi a sorrendben, amit az OrderBy() függvény rendezett nekünk
+        // A goal => rész minden egyes célra számolja, hogy mennyire közel van hozzánk
+        while(goals.Count > 0)
+        {
+            (int x, int y) celpont = goals.OrderBy(goal => Math.Abs(goal.x - roverX) + Math.Abs(goal.y - roverY)).First();
+            List<(int x, int y)> pathtoGoal = FindPath(grid, roverX, roverY, new List<(int x, int y)> { celpont });
+
+            // Hogyha a FindPath function elérhetetlen célt talál, akkor break
+            if(pathtoGoal.Count == 0)
+            {
+                Console.Write("Nincs elérhető cél!");
+                break;
+            }
+            teljespath.AddRange(pathtoGoal.Skip(1));
+
+            roverX = celpont.x;
+            roverY = celpont.y;
+            grid[roverY, roverX] = '.';
+            goals.Remove(celpont);
+        }
+        List<(int x, int y)> backpath = FindPath(grid, roverX, roverY, new List<(int x, int y)> { (startX, startY) });
+        if(backpath.Count > 0)
+        {
+            teljespath.AddRange(backpath.Skip(1));
+        }
 
         // Animáció
 
-        AnimatePath(grid, path, infoResz, infoCel, speed, paused, ref aksi, v, infoAksi, ref aksiszamlalotolt, ref aksiszamlalomerul, standby, ref standbyszamlalo, infoLocation, infoSebesseg, infoPause, ref logszamlalo);
+        AnimatePath(grid, teljespath, infoResz, infoCel, speed, paused, ref aksi, v, infoAksi, ref aksiszamlalotolt, ref aksiszamlalomerul, standby, ref standbyszamlalo, infoLocation, infoSebesseg, infoPause, ref logszamlalo);
         
         
         Console.ReadKey();
@@ -153,8 +183,6 @@ class Program
         int width = grid.GetLength(1);
         int startX = 0;
         int startY = 0;
-        int endX = 0;
-        int endY = 0;
 
         List<(int x, int y)> goals = new List<(int x, int y)>(); //<()> azt jelenti, hogy több értéket tárolok a listámban
 
@@ -167,15 +195,16 @@ class Program
                     startX = x;
                     startY = y;
                 }
-                if (grid[y, x] == 'G')
+                else if (grid[y, x] == 'G' || grid[y, x] == 'Y' || grid[y, x] == 'B')
                 {
                     goals.Add((x, y));
                 }
             }
         }
-
+        Console.SetCursorPosition(width + 2, height + 2);
         Console.Write($"Start: {startX}, {startY}");
-        Console.Write($"Cél: {endX}, {endY}");
+        Console.SetCursorPosition(width + 2, height + 3);
+        Console.Write($"Gyűjtött elemek: {goals.Count}");
 
         return (startX, startY, goals);
     }
@@ -241,7 +270,6 @@ class Program
             {
                 endX = x;
                 endY = y;
-                Console.Write("Cél elérve!");
                 break;
             }
             for (int i = 0; i < 8; i++)
@@ -259,12 +287,10 @@ class Program
                     }
                 }
             }
-
-            if (x == endX && y == endY)
-            {
-                Console.Write("Cél elérve!");
-                break;
-            }
+        }
+        if(endX == -1 && endY == -1)
+        {
+            return new List<(int x, int y)>();
         }
         List<(int x, int y)> path = new List<(int x, int y)>();
         int px = endX;
@@ -280,7 +306,7 @@ class Program
 
         return path;
     }
-    static void AnimatePath(char[,] grid, List<(int x, int y)> path, int infoResz, int infoCel, int speed, bool paused, ref int aksi, int v, int infoAksi, ref int aksiszamlalotolt, ref int aksiszamlalomerul, bool standby, ref int standbyszamlalo, int infoLocation, int infoSebesseg, int infoPause, ref int logszamlalo)
+    static void AnimatePath(char[,] grid, List<(int x, int y)> teljespath, int infoResz, int infoCel, int speed, bool paused, ref int aksi, int v, int infoAksi, ref int aksiszamlalotolt, ref int aksiszamlalomerul, bool standby, ref int standbyszamlalo, int infoLocation, int infoSebesseg, int infoPause, ref int logszamlalo)
     {
         int height = grid.GetLength(0);
         int width = grid.GetLength(1);
@@ -301,7 +327,7 @@ class Program
         }
 
         
-        foreach (var step in path)
+        foreach (var step in teljespath)
         {
 
             // A program automatikusan fut, még akkor is ha lenyomok vagy nem nyomok le egy gombot, azaz akkor is ha módosítom a sebességet vagy nem módosítom a sebességet. Ezt jelenti a KeyAvaible.
