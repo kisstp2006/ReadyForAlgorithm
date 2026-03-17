@@ -11,7 +11,7 @@ namespace Program;
 
 class Program
 {
-    static bool aksitolt = false;
+    static volatile bool aksitolt = false; // volatile az azért felelős, hogy mindig friss adatunk legyen, és ne csússzon el semmi az aksitolt kapcsán
     static void Main()
     {
         Console.WriteLine("Hello world!");
@@ -35,6 +35,9 @@ class Program
         int infoCel = height + 1;
         int infoTime = height + 2;
         int infoAksi = height + 3;
+        int infoLocation = height + 4;
+        int infoSebesseg = height + 5;
+        int infoPause = height + 6;
 
         // Egy új Thread-et, azaz mini programot hozok létre, ami függetlenül működik a Main függvényben lévő fő pathfinding programtól.
         // Ez azért kell, mert a nappalok és az éjszakák váltása a végtelenségig megy, ami akadályozná a pathfinding működését.
@@ -81,6 +84,11 @@ class Program
         bool paused = false; // Először nincs megállás
         int aksi = 100; // Akkumulátor maxra, azaz 100-ra állítva
         int v = 2; // Normál sebesség maga
+        int aksiszamlalotolt = 0;
+        int aksiszamlalomerul = 0;
+        bool standby = false;
+        int standbyszamlalo = 0;
+        int logszamlalo = 0;
         
 
         // Kiírom a debugger-be a grid tartalmát
@@ -99,7 +107,7 @@ class Program
 
         // Animáció
 
-        AnimatePath(grid, path, infoResz, infoCel, speed, paused, aksi, v, infoAksi);
+        AnimatePath(grid, path, infoResz, infoCel, speed, paused, ref aksi, v, infoAksi, ref aksiszamlalotolt, ref aksiszamlalomerul, standby, ref standbyszamlalo, infoLocation, infoSebesseg, infoPause, ref logszamlalo);
         
         
         Console.ReadKey();
@@ -202,11 +210,19 @@ class Program
         // -1,0 jelenti az x-1, y+0, azaz a bal irányt.
         // 0,1 jelenti az x+0, y+1, azaz a lefelé irányt.
         // 0,-1 jelenti az x+0, y-1, azaz a felfelé irányt.
+        // 1, 1 jelenti az x+1, y+1, azaz a balra és a lefelé átlós irányt.
+        // 1, -1 jelenti az x+1, y-1, azaz a balra és felfelé átlós irányt.
+        // -1, 1 jelenti az x-1, y+1, azaz a jobbra és lefelé átlós irányt.
+        // -1, -1 jelenti az x-1, y-1, azaz a jobbra és felfelé átlós irányt.
         int[,] directions = {
             {1, 0},
             {-1, 0},
             {0, 1},
-            {0, -1}
+            {0, -1},
+            {1, 1},
+            {1, -1},
+            {-1, 1},
+            {-1, -1}
         };
 
         // Amíg van felfedezetlen mező, addig a jelenlegi helyet, amelyen állunk, dequeue-ezze, azaz vegye el a felfedezettlen területekből.
@@ -264,7 +280,7 @@ class Program
 
         return path;
     }
-    static void AnimatePath(char[,] grid, List<(int x, int y)> path, int infoResz, int infoCel, int speed, bool paused, int aksi, int v, int infoAksi)
+    static void AnimatePath(char[,] grid, List<(int x, int y)> path, int infoResz, int infoCel, int speed, bool paused, ref int aksi, int v, int infoAksi, ref int aksiszamlalotolt, ref int aksiszamlalomerul, bool standby, ref int standbyszamlalo, int infoLocation, int infoSebesseg, int infoPause, ref int logszamlalo)
     {
         int height = grid.GetLength(0);
         int width = grid.GetLength(1);
@@ -310,26 +326,90 @@ class Program
                     speed = 667;
                     v = 3;
                 }
-                else if (consolekey == ConsoleKey.Spacebar)
+                else if (consolekey == ConsoleKey.Escape)
                 {
                     paused = true;
+                    standby = true;
                 }
             }
 
+            
             // Amíg megállítom az algoritmust a Space gomb megnyomásával, addig az algoritmus nem fog mozogni.
             // Majd ha újra lenyomom a Space-t, akkor mozog az algoritmus, mivelhogy a paused-ot false-ra állítom.
             while (paused)
             {
+                Console.SetCursorPosition(0, infoPause);
+                if (paused == true)
+                {
+                    Console.Write("Paused? Yes     ");
+                }
                 if (Console.KeyAvailable)
                 {
                     ConsoleKey stop = Console.ReadKey(true).Key;
-                    if (stop == ConsoleKey.Spacebar)
+                    if (stop == ConsoleKey.Escape)
                     {
                         paused = false;
+                        standby = false;
+                        Console.SetCursorPosition(0, infoPause);
+                        if (paused == false)
+                        {
+                            Console.Write("Paused? No     ");
+                        }
                     }
                 }
-                System.Threading.Thread.Sleep(50); // 50 miliszekundumot várunk, hogy megálljon...
+                System.Threading.Thread.Sleep(50); // 50 miliszekundumot várunk, hogy megálljon, így a teljesítmény is javul és a CPU nem dolgozik 100%-on pause közben
+                standbyszamlalo += 50;
+                logszamlalo += 50;
+                if(standbyszamlalo >= 2000 && standby == true) // Minden fél órában (2 másodperc), amíg állunk, vonjon le 1 egységet
+                {
+                    aksi -= 1;
+                    if (aksi <= 0)
+                    {
+                        aksi = 0;
+                    }
+                    standbyszamlalo = 0;
+                }
+                if(logszamlalo >= 2000) // Adatok kiírása minden fél órában (2 másodperc), addig amíg le van állítva
+                {
+                    Console.SetCursorPosition(0, infoAksi);
+                    Console.Write($"Akkumulátor szint: {aksi}     ");
+
+                    Console.SetCursorPosition(0, infoLocation);
+                    Console.Write($"Rover helye (x,y): {prevX}, {prevY}       ");
+
+                    Console.SetCursorPosition(0, infoSebesseg);
+                    if (paused == true)
+                    {
+                        Console.Write("Sebesség: Leállítva     ");
+                        
+                    }
+                    else if (speed == 1000)
+                    {
+                        Console.Write("Sebesség: Normál       ");
+                    }
+                    else if (speed == 667)
+                    {
+                        Console.Write("Sebesség: Gyors        ");
+                    }
+                    else if (speed == 2000)
+                    {
+                        Console.Write("Sebesség: Lassú        ");
+                    }
+
+                    Console.SetCursorPosition(0, infoPause);
+                    if (paused == true)
+                    {
+                        Console.Write("Paused? Yes     ");
+                    }
+                    else if (paused == false)
+                    {
+                        Console.Write("Paused? No     ");
+                    }
+
+                    logszamlalo = 0;
+                }
             }
+
             int x = step.x;
             int y = step.y;
 
@@ -340,10 +420,10 @@ class Program
                 Console.Write(grid[prevY, prevX]);
             }
 
-            // Megjelenünk az új helyen egy '@'-ként és pirosan, de nem hagyjuk, hogy az egész map piros legyen, erre van a ResetColor()
+            // Megjelenünk az új helyen egy '&'-ként és pirosan, de nem hagyjuk, hogy az egész map piros legyen, erre van a ResetColor()
             Console.SetCursorPosition(x, y);
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write('@');
+            Console.Write('&');
             Console.ResetColor();
 
             prevX = x;
@@ -353,31 +433,98 @@ class Program
             // Zöld utasítás
             Console.SetCursorPosition(0, infoResz);
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("S = lassú sebességért || N = normál sebességért || F = gyors sebességért || Space = megállás");
+            Console.Write("S = lassú sebességért || N = normál sebességért || F = gyors sebességért || Esc = megállás");
             Console.ResetColor();
 
             
             
             System.Threading.Thread.Sleep(speed); // Ha semmi sincs megnyomva, addig haladjon tovább a beállított sebességgel
 
-            aksi -= (2 * (v * v));
+            aksiszamlalomerul += speed;
+            logszamlalo += speed;
+            if(aksiszamlalomerul >= 2000) // A sebesség idejét hozzáadva a bool-hoz, és így 2 másodpercenként (fél óra) merül az aksi.
+            {
+                aksi -= (2 * (v * v));
+                aksiszamlalomerul = 0;
+            }
+            if(logszamlalo >= 2000) // Adatok kiírása minden fél órában (2 másodperc), addig amíg megyünk
+            {
+                Console.SetCursorPosition(0, infoAksi);
+                Console.Write($"Akkumulátor szint: {aksi}     ");
+
+                Console.SetCursorPosition(0, infoLocation);
+                Console.Write($"Rover helye (x,y): {prevX}, {prevY}       ");
+
+                Console.SetCursorPosition(0, infoSebesseg);
+                if (paused == true)
+                {
+                    Console.Write("Sebesség: Leállítva     ");
+                }
+                else if (speed == 1000)
+                {
+                    Console.Write("Sebesség: Normál       ");
+                }
+                else if (speed == 667)
+                {
+                    Console.Write("Sebesség: Gyors        ");
+                }
+                else if (speed == 2000)
+                {
+                    Console.Write("Sebesség: Lassú        ");
+                }
+
+                Console.SetCursorPosition(0, infoPause);
+                if (paused == true)
+                {
+                    Console.Write("Paused? Yes     ");
+                }
+                else if (paused == false)
+                {
+                    Console.Write("Paused? No     ");
+                }
+                logszamlalo = 0;
+            }
 
             if (aksitolt)
             {
-                aksi += 10;
+                aksiszamlalotolt += speed;
+                if(aksiszamlalotolt >= 2000) // Ha nappal van, a sebesség idejét hozzáadva a bool-hoz, és így 2 másodpercenként (fél óra) tölt az aksi.
+                {
+                    aksi += 10;
+                    aksiszamlalotolt = 0;
+                }
             }
 
             if(aksi <= 0)
             {
                 aksi = 0;
+                paused = true;
+                Console.SetCursorPosition(0, height + 7);
+                Console.Write("Autó-megállás lemerülés miatt. Nyomd meg az Esc-et elindulásért!"    );
+                if(aksitolt == true)
+                {
+                    Console.SetCursorPosition(0, height + 9);
+                    Console.Write("Töltés folyamatban!           ");
+                }
+                else if(aksitolt == false)
+                {
+                    Console.SetCursorPosition(0, height + 9);
+                    Console.Write("Várj nappalig!"              );
+                }
             }
             if(aksi >= 100)
             {
                 aksi = 100;
             }
+            if(aksi <= 20)
+            {
+                Console.SetCursorPosition(0, height + 8);
+                Console.Write("20% - Alacsony töltöttségi szint!"      );
+            }
             
-            Console.SetCursorPosition(0, infoAksi);
-            Console.Write($"Akkumulátor szint: {aksi}");
+
+            
+            
         }
         Console.SetCursorPosition(0, infoCel);
         Console.Write("Cél elérve!");
