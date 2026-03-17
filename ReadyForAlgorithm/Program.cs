@@ -244,7 +244,7 @@ class Program
                 Console.Write("Cél elérve!");
                 break;
             }
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 8; i++)
             {
                 int nx = x + directions[i, 0];
                 int ny = y + directions[i, 1];
