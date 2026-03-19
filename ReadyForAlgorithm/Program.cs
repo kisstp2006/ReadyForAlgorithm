@@ -483,7 +483,7 @@ class Program
                 Console.SetCursorPosition(width + 2, height + 6);
                 Console.Write($"A rover lépés száma: {leptem}                          ");
 
-                Console.SetCursorPosition(width + 2, height + 7);
+                Console.SetCursorPosition(0, height + 11);
                 Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}");
 
                 Console.SetCursorPosition(0, infoSebesseg);
@@ -524,7 +524,7 @@ class Program
                 {
                     return;
                 }
-                Console.SetCursorPosition(width + 2, height + 7);
+                Console.SetCursorPosition(0, height + 11);
                 Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}  ");
 
                 int idougras = 100;
@@ -681,7 +681,7 @@ class Program
                 {
                     return;
                 }
-                Console.SetCursorPosition(width + 2, height + 7);
+                Console.SetCursorPosition(0, height + 11);
                 Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}  ");
 
                 Console.SetCursorPosition(0, infoPause);
