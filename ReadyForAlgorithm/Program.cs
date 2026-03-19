@@ -12,19 +12,22 @@ namespace Program;
 class Program
 {
     static volatile bool aksitolt = false; // volatile az azért felelős, hogy mindig a legfrissebb értékünk legyen, és ne egy korábban eltárolt érték az aksitolt kapcsán
+    static volatile int idoszam = 0;
+    static volatile bool isRuning = true;
     static void Main()
     {
+        Console.SetWindowSize(Math.Min(150, Console.LargestWindowWidth), Math.Min(65, Console.LargestWindowHeight)); // Ablak méret állítás
         int megadottszam = 0;
         bool indithato = false;
 
         Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.WriteLine("===== <> MARS ROVER RENDSZER INDÍTÁSA <> =====");
+        Console.WriteLine("===== > MARS ROVER RENDSZER INDÍTÁSA < =====");
         Console.ResetColor();
 
         
         while (indithato == false)
         {
-            Console.Write("Kérlek adj meg egy számot az indításhoz (minimum 24, óra): ");
+            Console.Write("Kérlek adj meg egy számot az indításhoz (minimum 24, ez órának felel meg): ");
             string bevitel = Console.ReadLine();
 
             // Megnézzük, hogy egyáltalán számot írt-e be a felhasználó
@@ -34,9 +37,10 @@ class Program
                 {
                     indithato = true;
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"A(z) {megadottszam} megfelelő. A szimuláció indul...");
+                    Console.WriteLine($"A(z) {megadottszam} megfelelő. A szimuláció indul rövidesen...");
                     Console.ResetColor();
-                    Thread.Sleep(3000);
+                    idoszam = megadottszam;
+                    System.Threading.Thread.Sleep(3000);
                     Console.Clear(); // 3 másodperc múlva eltűnik az egész képernyő, és indul a program
                 }
                 else
@@ -53,7 +57,7 @@ class Program
                 Console.ResetColor();
             }
         }
-        //Console.WriteLine("Hello world!");
+        
         string[] lines = File.ReadAllLines("mars_map_50x50.csv"); // Beolvasom a fájlt
 
 
@@ -65,6 +69,7 @@ class Program
 
         // Egy nap számolásához szükéges elemek és a kiírott szövegek elhelyezése
 
+        int idoszamszamolo = 0;
         int day = 0;
         bool night = true;
 
@@ -85,10 +90,23 @@ class Program
         // Az új Thread-be rakom bele a nappalok és az éjszakák változásának kódját. Ezt jelenti a (() => {...}) rész
         Thread thread = new Thread(() =>
         {
-            while (true)
+            while (isRuning)
             {
                 day += 1;
                 System.Threading.Thread.Sleep(1000);
+                idoszamszamolo += 1;
+                if(idoszamszamolo >= 4)
+                {
+                    idoszam -= 1;
+                    idoszamszamolo = 0;
+                    if (idoszam <= 0)
+                    {
+                        //Game over
+                        idoszam = 0;
+                        GameOver("LEJÁRT AZ IDŐ! MISSION FAILED!");
+                        return;
+                    }
+                }
                 if (day >= 64 && day <= 96)
                 {
                     if (!night)
@@ -193,6 +211,22 @@ class Program
 
 
         Console.ReadKey();
+    }
+    static void GameOver(string uzenet)
+    {
+        isRuning = false; // Leállítom a Main és a Thread futtását
+        System.Threading.Thread.Sleep(100);
+        Console.Clear(); // Kitörlök mindent, ami volt a Main-ben és a Thread-ben
+        Console.SetCursorPosition(0, 0);
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("\n=============================================================================");
+        Console.WriteLine("                             GAME OVER!                                      ");
+        Console.WriteLine("=============================================================================");
+        Console.ResetColor();
+        Console.WriteLine($"\nAz ok, amiért vége a játéknak: {uzenet}");
+        Console.WriteLine("\nNyomj meg egy gombot a kilépéshez!");
+        Console.ReadKey();
+        Environment.Exit(0); // Leállítom mindennek a futását
     }
     static char[,] LoadGrid(string[] lines)
     {
@@ -368,8 +402,6 @@ class Program
 
         (int prevX, int prevY) = (-1, -1); // Itt tároljuk, hogy hol voltunk, mielőtt elmozdultunk volna
 
-        //Console.Clear();
-        // Ez a kód rész a kezdeti map-ot kiírja, mivelhogy a Console.Clear()-el mindig frissítjük a map-ot ahogy mozgunk
 
         int prevHeight = Console.WindowHeight;
         int prevWidth = Console.WindowWidth;
@@ -387,10 +419,54 @@ class Program
             }
         }
         DrawMap();
-        
+
+        void FastSleep()
+        {
+            int elapsed = 0;
+            while (elapsed < speed && isRuning == true && paused == false)
+            {
+                if (Console.KeyAvailable)
+                {
+                    ConsoleKey key = Console.ReadKey(true).Key;
+                    if (key == ConsoleKey.S)
+                    {
+                        speed = 2000;
+                        v = 1;
+                    }
+                    else if (key == ConsoleKey.N)
+                    {
+                        speed = 1000;
+                        v = 2;
+                    }
+                    else if (key == ConsoleKey.F)
+                    {
+                        speed = 667;
+                        v = 3;
+                    }
+                    else if (key == ConsoleKey.Escape)
+                    {
+                        paused = !paused;
+                        standby = paused;
+                    }
+                }
+
+                int tick = 50;
+                System.Threading.Thread.Sleep(tick);
+                elapsed += tick;
+            }
+        }
+
         foreach (var step in teljespath)
         {
-            if (logszamlalo >= 2000) // Adatok kiírása minden fél órában (2 másodperc), addig amíg le van állítva
+            if(isRuning == false)
+            {
+                break;
+            }
+            if(Program.idoszam <= 0)
+            {
+                break;
+            }
+            if (logszamlalo >= 2000 && isRuning == true) // Adatok kiírása minden fél órában (2 másodperc), addig amíg le van állítva
             {
                 Console.SetCursorPosition(0, infoAksi);
                 Console.Write($"Akkumulátor szint: {aksi}%     ");
@@ -406,6 +482,9 @@ class Program
 
                 Console.SetCursorPosition(width + 2, height + 6);
                 Console.Write($"A rover lépés száma: {leptem}                          ");
+
+                Console.SetCursorPosition(width + 2, height + 7);
+                Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}");
 
                 Console.SetCursorPosition(0, infoSebesseg);
                 if (paused == true)
@@ -438,8 +517,16 @@ class Program
 
                 logszamlalo = 0;
             }
-            while (isMining == true)
+            
+            while (isMining == true && isRuning == true)
             {
+                if (Program.idoszam <= 0)
+                {
+                    return;
+                }
+                Console.SetCursorPosition(width + 2, height + 7);
+                Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}  ");
+
                 int idougras = 100;
                 Console.SetCursorPosition(0, infoPause);
                 Console.Write("Paused? Yes (Mining)           ");
@@ -503,7 +590,17 @@ class Program
                 else if(paused == true)
                 {
                     System.Threading.Thread.Sleep(50);
-                    if(aksitolt == true)
+                    standbyszamlalo += 50;
+                    if (standbyszamlalo >= 2000)
+                    {
+                        aksi -= 1;
+                        if (aksi < 0)
+                        {
+                            aksi = 0;
+                        }
+                        standbyszamlalo = 0;
+                    }
+                    if (aksitolt == true)
                     {
                         aksiszamlalotolt += 50;
                         if(aksiszamlalotolt >= 2000)
@@ -576,10 +673,17 @@ class Program
             }
 
             
-            // Amíg megállítom az algoritmust a Space gomb megnyomásával, addig az algoritmus nem fog mozogni.
-            // Majd ha újra lenyomom a Space-t, akkor mozog az algoritmus, mivelhogy a paused-ot false-ra állítom.
+            // Amíg megállítom az algoritmust az Esc gomb megnyomásával, addig az algoritmus nem fog mozogni.
+            // Majd ha újra lenyomom a Esc-et, akkor mozog az algoritmus, mivelhogy a paused-ot false-ra állítom.
             while (paused)
             {
+                if (Program.idoszam <= 0)
+                {
+                    return;
+                }
+                Console.SetCursorPosition(width + 2, height + 7);
+                Console.Write($"Ennyi ideje van a rovernek hátra: {Program.idoszam}  ");
+
                 Console.SetCursorPosition(0, infoPause);
                 if (paused == true)
                 {
@@ -617,11 +721,7 @@ class Program
                         aksiszamlalotolt = 0;
                     }
                 }
-                /*if(gyujtesszamlalo >= 2000 && paused == true) // Minden fél órában (2 másodperc), amíg bányászunk, vonjon le 1 egységet, az ötlet az az, hogy a standby számolása automatikusan levon 1, amikor állunk, tehát ha a bányászás is levon 1 egységet, akkor 2 egység van levonva fél óra alatt csupán bányászásért
-                {
-                    aksi -= 1;
-                    paused = false;
-                }*/
+                
                 if(standbyszamlalo >= 2000 && standby == true) // Minden fél órában (2 másodperc), amíg állunk, vonjon le 1 egységet
                 {
                     aksi -= 1;
@@ -671,12 +771,12 @@ class Program
             // Zöld utasítás
             Console.SetCursorPosition(0, infoResz);
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("S = lassú sebességért || N = normál sebességért || F = gyors sebességért || Esc = megállás");
+            Console.Write("S = lassú sebességért || N = normál sebességért || F = gyors sebességért || Esc = megállás/elindítás");
             Console.ResetColor();
 
             
             
-            System.Threading.Thread.Sleep(speed); // Ha semmi sincs megnyomva, addig haladjon tovább a beállított sebességgel
+            FastSleep(); // Ha semmi sincs megnyomva, addig haladjon tovább a beállított sebességgel
 
             aksiszamlalomerul += speed;
             logszamlalo += speed;
@@ -696,18 +796,31 @@ class Program
                 aksi = 0;
                 paused = true;
                 Console.SetCursorPosition(0, height + 7);
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write("Autó-megállás lemerülés miatt. Nyomd meg az Esc-et elindulásért!                ");
+                Console.ResetColor();
                 if(aksitolt == true)
                 {
                     Console.SetCursorPosition(0, height + 9);
+                    Console.ForegroundColor = ConsoleColor.Green;
                     Console.Write("Töltés folyamatban!           ");
+                    Console.ResetColor();
                 }
                 else if(aksitolt == false)
                 {
                     Console.SetCursorPosition(0, height + 9);
+                    Console.ForegroundColor= ConsoleColor.Cyan;
                     Console.Write("Várj nappalig!              ");
+                    Console.ResetColor();
                 }
                 continue;
+            }
+            else
+            {
+                Console.SetCursorPosition(0, height + 7);
+                Console.Write("                                                                        ");
+                Console.SetCursorPosition(0, height + 9);
+                Console.Write("                                                                        ");
             }
 
             if (aksitolt)
@@ -735,12 +848,15 @@ class Program
                 Console.SetCursorPosition(0, height + 8);
                 Console.Write("                                        ");
             }
-            
 
-            
-            
         }
-        Console.SetCursorPosition(0, infoCel);
-        Console.Write("Cél elérve!");
+        if(isRuning == true)
+        {
+            Console.SetCursorPosition(0, infoCel);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("CÉL ELÉRVE!");
+            Console.ResetColor();
+        }
+        
     }
 }
