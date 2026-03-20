@@ -23,7 +23,7 @@ internal static class Program
         int duration = 24;
         if (args.Length > 1 && int.TryParse(args[1], out int parsedDuration))
         {
-            duration = parsedDuration;
+            duration = Math.Max(24, parsedDuration);
         }
 
         using RoverImGuiWindow window = new(mapPath, duration/*, args.FirstOrDefault()*/, GameWindowSettings.Default, nativeWindowSettings);
@@ -38,7 +38,8 @@ internal sealed class RoverImGuiWindow : GameWindow
         isGameOver = true;
         simulation.TogglePause();
     }
-    private readonly RoverSimulation simulation;
+    private string? loadedMapPath;
+    private RoverSimulation simulation;
     private ImGuiController? controller;
 
     private int missionDurationHours = 24;
@@ -50,10 +51,20 @@ internal sealed class RoverImGuiWindow : GameWindow
     public RoverImGuiWindow(string? mapPath, int duration, GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
         : base(gameWindowSettings, nativeWindowSettings)
     {
-        simulation = RoverSimulation.CreateFromFile(mapPath);
+        this.loadedMapPath = mapPath;
         this.isSimulationStarted = true;
         this.missionDurationHours = duration;
         this.remainingMissionHours = duration;
+        if(duration >= 24)
+        {
+            this.isSimulationStarted = true;
+        }
+        else
+        {
+            this.isSimulationStarted = false;
+            this.missionDurationHours = 24;
+        }
+        simulation = RoverSimulation.CreateFromFile(mapPath);
     }
 
     protected override void OnLoad()
@@ -149,24 +160,22 @@ internal sealed class RoverImGuiWindow : GameWindow
         ImGui.SetCursorPosX((ImGui.GetWindowSize().X - textWidth) * 0.5f);
         ImGui.Text("GAME OVER");
         ImGui.PopStyleColor();
-        ImGui.SetWindowFontScale(1.0f); // Visszaállítjuk a méretet
+        ImGui.SetWindowFontScale(1.0f);
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
-        // Az ok kifejtése
-        ImGui.TextWrapped("The mission has failed because the allocated time has expired. The rover is now out of communication window.");
+        ImGui.TextWrapped("The mission has failed, because the allocated time has expired. The rover is now out of communication window.");
 
         ImGui.Spacing();
         if (ImGui.Button("RESTART MISSION", new System.Numerics.Vector2(-1, 40)))
         {
-            // Itt egyszerûen visszaállíthatod a változókat az alaphelyzetbe
             isGameOver = false;
             isSimulationStarted = false;
             timeAccumulator = 0;
-            // Ha van Restart funkció a szimulációban, azt is hívd meg:
-            // simulation.Reset(); 
+
+            simulation = RoverSimulation.CreateFromFile(loadedMapPath);
         }
 
         ImGui.End();

@@ -38,9 +38,9 @@ public sealed class RoverSimulation
         RoverPosition = route.Count > 0 ? route[0] : start;
         Battery = 100;
         SpeedMode = RoverSpeedMode.Normal;
-        StatusMessage = "Szimulacio keszen all.";
+        StatusMessage = "The Simulation is ready for start";
         lastNightState = IsNight;
-        AppendLog("Szimulacio inicializalva.");
+        AppendLog("Simulation initialized");
     }
 
     public GridPosition RoverPosition { get; private set; }
@@ -89,11 +89,11 @@ public sealed class RoverSimulation
         }
 
         SpeedMode = speedMode;
-        StatusMessage = $"Sebesseg modositva: {GetSpeedLabel(speedMode)}.";
+        StatusMessage = $"Speed changed: {GetSpeedLabel(speedMode)}.";
         AppendLog(StatusMessage);
     }
 
-    public void Pause(string reason = "Szimulacio szuneteltetve.")
+    public void Pause(string reason = "Paused? Yes")
     {
         if (IsPaused)
         {
@@ -105,7 +105,7 @@ public sealed class RoverSimulation
         AppendLog(reason);
     }
 
-    public void Resume(string reason = "Szimulacio folytatva.")
+    public void Resume(string reason = "Paused? No")
     {
         if (!IsPaused)
         {
@@ -114,7 +114,7 @@ public sealed class RoverSimulation
 
         if (Battery <= 0)
         {
-            StatusMessage = "Az akku ures, toltodes szukseges a folytatashoz.";
+            StatusMessage = "Battery is dead, charging is necessary";
             AppendLog(StatusMessage);
             return;
         }
@@ -188,7 +188,7 @@ public sealed class RoverSimulation
         if (lastNightState != IsNight)
         {
             lastNightState = IsNight;
-            AppendLog(IsNight ? "Ejjel lett a Marson." : "Hajnalodott, ujra tolt a napelem.");
+            AppendLog(IsNight ? "Evening time on Mars" : "Morning time, the battery is charging");
         }
     }
 
@@ -213,9 +213,9 @@ public sealed class RoverSimulation
 
         EmitPeriodicStatus(elapsedMilliseconds);
 
-        if (Battery > 0 && StatusMessage.Contains("toltodes", StringComparison.OrdinalIgnoreCase))
+        if (Battery > 0 && StatusMessage.Contains("charging", StringComparison.OrdinalIgnoreCase))
         {
-            StatusMessage = "Az akku ujra hasznalhato, a szimulacio folytathato.";
+            StatusMessage = "The battery can be used again, the simulation can continue.";
         }
     }
 
@@ -293,11 +293,11 @@ public sealed class RoverSimulation
 
         routeIndex++;
         RoverPosition = route[routeIndex];
-        StatusMessage = $"Rover pozicio: {RoverPosition.X}, {RoverPosition.Y}";
+        StatusMessage = $"Rover position: {RoverPosition.X}, {RoverPosition.Y}";
 
         if (IsGoal(RoverPosition))
         {
-            AppendLog($"Minta eszlelve! Mining inditasa: {RoverPosition.X}, {RoverPosition.Y}");
+            AppendLog($"Precious stone detected! Mining begins: {RoverPosition.X}, {RoverPosition.Y}");
             miningTimeAccumulator = MiningDuration;
         }
 
@@ -313,7 +313,7 @@ public sealed class RoverSimulation
         while (logAccumulator >= TickLogIntervalMilliseconds)
         {
             logAccumulator -= TickLogIntervalMilliseconds;
-            AppendLog($"Statusz | Akku: {Battery}% | Pozicio: {RoverPosition.X},{RoverPosition.Y} | Ido: {GetTimeLabel()} | Sebesseg: {GetSpeedLabel(SpeedMode)} | Pause: {(IsPaused ? "Igen" : "Nem")}");
+            AppendLog($"Status | Battery: {Battery}% | Position: {RoverPosition.X},{RoverPosition.Y} | Time: {GetTimeLabel()} | Speed: {GetSpeedLabel(SpeedMode)} | Paused?: {(IsPaused ? "Yes" : "No")}");
         }
     }
 
@@ -325,7 +325,7 @@ public sealed class RoverSimulation
         if (Battery <= 20 && !lowBatteryLogged)
         {
             lowBatteryLogged = true;
-            AppendLog("20% - Alacsony toltottsegi szint.");
+            AppendLog("20% - Low battery level.");
         }
         else if (Battery > 20)
         {
@@ -342,24 +342,24 @@ public sealed class RoverSimulation
     {
         IsPaused = true;
         StatusMessage = !IsNight
-            ? "Az akku lemerult, nappali toltodes folyamatban. Resume amikor megfelelo."
-            : "Az akku lemerult, varni kell nappalig.";
+            ? "The battery is dead, morning charging is in process. Press Resume when ready."
+            : "The battery is dead, you must wait till morning.";
 
         if (!batteryStopLogged)
         {
             batteryStopLogged = true;
-            AppendLog("Auto-megallas lemerules miatt.");
+            AppendLog("Auto-pause due to the battery being dead.");
         }
     }
 
     private void MarkCompleted()
     {
         IsComplete = true;
-        StatusMessage = "Cel elerve.";
+        StatusMessage = "Goal Reached!";
         if (!completionLogged)
         {
             completionLogged = true;
-            AppendLog("A kuldetes befejezodott.");
+            AppendLog("The mission is accomplished.");
         }
     }
 
@@ -401,8 +401,8 @@ public sealed class RoverSimulation
     {
         return speedMode switch
         {
-            RoverSpeedMode.Slow => "Lassu",
-            RoverSpeedMode.Fast => "Gyors",
+            RoverSpeedMode.Slow => "Slow",
+            RoverSpeedMode.Fast => "Fast",
             _ => "Normal"
         };
     }
@@ -412,6 +412,6 @@ public sealed class RoverSimulation
         int totalMinutes = (int)Math.Round(dayClockMilliseconds / 1000d * 15d, MidpointRounding.AwayFromZero);
         int hours = (totalMinutes / 60) % 24;
         int minutes = totalMinutes % 60;
-        return $"{hours:00}:{minutes:00} {(IsNight ? "Ejjel" : "Nappal")}";
+        return $"{hours:00}:{minutes:00} {(IsNight ? "Evening" : "Morning")}";
     }
 }
