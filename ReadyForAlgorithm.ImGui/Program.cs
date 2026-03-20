@@ -178,31 +178,51 @@ internal sealed class RoverImGuiWindow : GameWindow
 
         for (int y = 0; y < height; y++)
         {
-            char[] row = new char[width];
             for (int x = 0; x < width; x++)
             {
                 GridPosition position = new(x, y);
                 char cell = snapshot.Terrain[y, x];
+                char displayChar;
+                Vector4 color;
 
                 if (position == snapshot.RoverPosition)
                 {
-                    row[x] = '&';
+                    displayChar = '&';
+                    color = new Vector4(1.0f, 0.0f, 0.0f, 1.0f); // Piros
                 }
                 else if ((cell == 'G' || cell == 'Y' || cell == 'B') && !remainingGoals.Contains(position))
                 {
-                    row[x] = '.';
+                    displayChar = '.';
+                    color = new Vector4(0.5f, 0.5f, 0.5f, 1.0f); // Szürke
                 }
                 else
                 {
-                    row[x] = cell;
+                    displayChar = cell;
+                    color = GetColorForCell(cell);
                 }
-            }
 
-            ImGui.TextUnformatted(new string(row));
+                ImGui.SameLine(0, 0);
+                ImGui.TextColored(color, displayChar.ToString());
+            }
+            ImGui.NewLine();
         }
 
         ImGui.EndChild();
         ImGui.End();
+    }
+
+    private static Vector4 GetColorForCell(char cell)
+    {
+        return cell switch
+        {
+            'S' => new Vector4(0.0f, 1.0f, 1.0f, 1.0f),      // Cián
+            'G' => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),      // Zöld
+            'Y' => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),      // Sárga
+            'B' => new Vector4(0.0f, 0.0f, 1.0f, 1.0f),      // Kék
+            '#' => new Vector4(0.3f, 0.3f, 0.3f, 1.0f),      // Sötétszürke
+            '.' => new Vector4(0.7f, 0.7f, 0.7f, 1.0f),      // Világosszürke
+            _ => new Vector4(1.0f, 1.0f, 1.0f, 1.0f)         // Fehér (default)
+        };
     }
 
     private static string FormatLogTime(int elapsedMilliseconds)
