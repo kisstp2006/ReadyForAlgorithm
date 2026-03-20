@@ -1,4 +1,5 @@
-using System.Numerics;
+ï»¿using System.Numerics;
+using System.Text;
 using ImGuiNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
@@ -12,6 +13,8 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
+        
         NativeWindowSettings nativeWindowSettings = new()
         {
             ClientSize = new OpenTK.Mathematics.Vector2i(1440, 900),
@@ -70,7 +73,7 @@ internal sealed class RoverImGuiWindow : GameWindow
     protected override void OnLoad()
     {
         base.OnLoad();
-        // Modern sötét háttér - mélyebb, elegánsabb árnyalat
+        // Modern sÃ¶tÃ©t hÃ¡ttÃ©r - mÃ©lyebb, elegÃ¡nsabb Ã¡rnyalat
         GL.ClearColor(0.06f, 0.07f, 0.09f, 1f);
         controller = new ImGuiController(ClientSize.X, ClientSize.Y);
 
@@ -158,7 +161,7 @@ internal sealed class RoverImGuiWindow : GameWindow
         ImGui.Spacing();
         ImGui.Spacing();
         
-        // Nagy piros "GAME OVER" szöveg
+        // Nagy piros "GAME OVER" szÃ¶veg
         ImGui.PushFont(ImGui.GetIO().Fonts.Fonts[0]);
         ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.2f, 0.2f, 1.0f));
         float textWidth = ImGui.CalcTextSize("GAME OVER").X * 2.5f;
@@ -299,7 +302,7 @@ internal sealed class RoverImGuiWindow : GameWindow
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(380, 300), ImGuiCond.FirstUseEver);
         ImGui.Begin($"{FontAwesome6.ChartLine} Telemetry");
         
-        // Mission time header - Prominens kijelzés
+        // Mission time header - Prominens kijelzÃ©s
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.15f, 0.18f, 0.25f, 1.0f));
         ImGui.BeginChild("MissionTime", new Vector2(0, 50), ImGuiChildFlags.Borders);
 
@@ -392,7 +395,7 @@ internal sealed class RoverImGuiWindow : GameWindow
             
             ImGui.SameLine();
             
-            // Színezés a log típusa alapján
+            // SzÃ­nezÃ©s a log tÃ­pusa alapjÃ¡n
             Vector4 logColor = new Vector4(0.85f, 0.87f, 0.90f, 1.0f);
             if (log.Message.Contains("Battery") || log.Message.Contains("battery"))
             {
@@ -525,7 +528,7 @@ internal sealed class RoverImGuiWindow : GameWindow
                 else if ((cell == 'G' || cell == 'Y' || cell == 'B') && !remainingGoals.Contains(position))
                 {
                     displayChar = '.';
-                    color = new Vector4(0.5f, 0.5f, 0.5f, 1.0f); // Szürke
+                    color = new Vector4(0.5f, 0.5f, 0.5f, 1.0f); // SzÃ¼rke
                 }
                 else
                 {
@@ -547,13 +550,13 @@ internal sealed class RoverImGuiWindow : GameWindow
     {
         return cell switch
         {
-            'S' => new Vector4(0.0f, 1.0f, 1.0f, 1.0f),      // Cián
-            'G' => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),      // Zöld
-            'Y' => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),      // Sárga
-            'B' => new Vector4(0.0f, 0.0f, 1.0f, 1.0f),      // Kék
-            '#' => new Vector4(0.3f, 0.3f, 0.3f, 1.0f),      // Sötétszürke
-            '.' => new Vector4(0.7f, 0.7f, 0.7f, 1.0f),      // Világosszürke
-            _ => new Vector4(1.0f, 1.0f, 1.0f, 1.0f)         // Fehér (default)
+            'S' => new Vector4(0.0f, 1.0f, 1.0f, 1.0f),      // CiÃ¡n
+            'G' => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),      // ZÃ¶ld
+            'Y' => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),      // SÃ¡rga
+            'B' => new Vector4(0.0f, 0.0f, 1.0f, 1.0f),      // KÃ©k
+            '#' => new Vector4(0.3f, 0.3f, 0.3f, 1.0f),      // SÃ¶tÃ©tszÃ¼rke
+            '.' => new Vector4(0.7f, 0.7f, 0.7f, 1.0f),      // VilÃ¡gosszÃ¼rke
+            _ => new Vector4(1.0f, 1.0f, 1.0f, 1.0f)         // FehÃ©r (default)
         };
     }
 
@@ -612,14 +615,14 @@ internal sealed class ImGuiController : IDisposable
     {
         ImGuiStylePtr style = ImGui.GetStyle();
         
-        // Modern színséma - Dark theme sötét kék-szürke árnyalatokkal
-        // Background colors - Sötét, modern háttér
+        // Modern szÃ­nsÃ©ma - Dark theme sÃ¶tÃ©t kÃ©k-szÃ¼rke Ã¡rnyalatokkal
+        // Background colors - SÃ¶tÃ©t, modern hÃ¡ttÃ©r
         style.Colors[(int)ImGuiCol.WindowBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.95f);
         style.Colors[(int)ImGuiCol.ChildBg] = new Vector4(0.11f, 0.12f, 0.14f, 1.00f);
         style.Colors[(int)ImGuiCol.PopupBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.98f);
         style.Colors[(int)ImGuiCol.Border] = new Vector4(0.20f, 0.22f, 0.27f, 0.80f);
         
-        // Title bar - Sötétkék accent
+        // Title bar - SÃ¶tÃ©tkÃ©k accent
         style.Colors[(int)ImGuiCol.TitleBg] = new Vector4(0.08f, 0.09f, 0.11f, 1.00f);
         style.Colors[(int)ImGuiCol.TitleBgActive] = new Vector4(0.12f, 0.14f, 0.18f, 1.00f);
         style.Colors[(int)ImGuiCol.TitleBgCollapsed] = new Vector4(0.08f, 0.09f, 0.11f, 0.75f);
@@ -627,7 +630,7 @@ internal sealed class ImGuiController : IDisposable
         // Menu bar
         style.Colors[(int)ImGuiCol.MenuBarBg] = new Vector4(0.10f, 0.11f, 0.13f, 1.00f);
         
-        // Scrollbar - Diszkrét, modern
+        // Scrollbar - DiszkrÃ©t, modern
         style.Colors[(int)ImGuiCol.ScrollbarBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.60f);
         style.Colors[(int)ImGuiCol.ScrollbarGrab] = new Vector4(0.25f, 0.27f, 0.32f, 1.00f);
         style.Colors[(int)ImGuiCol.ScrollbarGrabHovered] = new Vector4(0.35f, 0.37f, 0.42f, 1.00f);
@@ -638,7 +641,7 @@ internal sealed class ImGuiController : IDisposable
         style.Colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.18f, 0.19f, 0.22f, 1.00f);
         style.Colors[(int)ImGuiCol.FrameBgActive] = new Vector4(0.22f, 0.23f, 0.26f, 1.00f);
         
-        // Buttons - Modern kék accent színnel
+        // Buttons - Modern kÃ©k accent szÃ­nnel
         style.Colors[(int)ImGuiCol.Button] = new Vector4(0.20f, 0.25f, 0.35f, 1.00f);
         style.Colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.26f, 0.32f, 0.45f, 1.00f);
         style.Colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.18f, 0.22f, 0.32f, 1.00f);
@@ -648,7 +651,7 @@ internal sealed class ImGuiController : IDisposable
         style.Colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.26f, 0.32f, 0.45f, 0.80f);
         style.Colors[(int)ImGuiCol.HeaderActive] = new Vector4(0.22f, 0.27f, 0.38f, 1.00f);
         
-        // Separator - Finom elválasztó vonal
+        // Separator - Finom elvÃ¡lasztÃ³ vonal
         style.Colors[(int)ImGuiCol.Separator] = new Vector4(0.20f, 0.22f, 0.27f, 1.00f);
         style.Colors[(int)ImGuiCol.SeparatorHovered] = new Vector4(0.30f, 0.35f, 0.45f, 1.00f);
         style.Colors[(int)ImGuiCol.SeparatorActive] = new Vector4(0.35f, 0.40f, 0.52f, 1.00f);
@@ -660,7 +663,7 @@ internal sealed class ImGuiController : IDisposable
         // Docking
         style.Colors[(int)ImGuiCol.DockingPreview] = new Vector4(0.26f, 0.32f, 0.45f, 0.70f);
         
-        // Text colors - Világos, jó kontraszttal
+        // Text colors - VilÃ¡gos, jÃ³ kontraszttal
         style.Colors[(int)ImGuiCol.Text] = new Vector4(0.92f, 0.93f, 0.95f, 1.00f);
         style.Colors[(int)ImGuiCol.TextDisabled] = new Vector4(0.50f, 0.52f, 0.55f, 1.00f);
         
@@ -682,7 +685,7 @@ internal sealed class ImGuiController : IDisposable
         style.Colors[(int)ImGuiCol.PlotHistogram] = new Vector4(0.90f, 0.70f, 0.00f, 1.00f);
         style.Colors[(int)ImGuiCol.PlotHistogramHovered] = new Vector4(1.00f, 0.60f, 0.00f, 1.00f);
         
-        // Style settings - Modern, lekerekített, tágas
+        // Style settings - Modern, lekerekÃ­tett, tÃ¡gas
         style.WindowPadding = new Vector2(12, 12);
         style.FramePadding = new Vector2(8, 4);
         style.ItemSpacing = new Vector2(10, 6);
@@ -691,7 +694,7 @@ internal sealed class ImGuiController : IDisposable
         style.ScrollbarSize = 14;
         style.GrabMinSize = 12;
         
-        // Rounded corners - Modern, lekerekített design
+        // Rounded corners - Modern, lekerekÃ­tett design
         style.WindowRounding = 8.0f;
         style.ChildRounding = 6.0f;
         style.FrameRounding = 5.0f;
@@ -717,21 +720,21 @@ internal sealed class ImGuiController : IDisposable
         style.AntiAliasedLines = true;
         style.AntiAliasedFill = true;
         
-        Console.WriteLine("? Modern UI style applied!");
+        Console.WriteLine("âœ“ Modern UI style applied!");
     }
 
     private unsafe void LoadFonts(ImGuiIOPtr io)
     {
         try
         {
-            // Alapértelmezett font betöltése
+            // AlapÃ©rtelmezett font betÃ¶ltÃ©se
             io.Fonts.AddFontDefault();
             
             string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Fonts", "fa-solid-900.ttf");
             
             if (File.Exists(fontPath))
             {
-                // Font Awesome merge-elése az alap fonttal
+                // Font Awesome merge-elÃ©se az alap fonttal
                 ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
                 fontConfig.MergeMode = true;
                 fontConfig.PixelSnapH = true;
@@ -739,11 +742,11 @@ internal sealed class ImGuiController : IDisposable
                 fontConfig.OversampleH = 1;
                 fontConfig.OversampleV = 1;
 
-                // Font Awesome 6 Free Solid ikonok TELJES unicode tartománya
-                // Kib?vített range, hogy minden ikon megjelenjen
+                // Font Awesome 6 Free Solid ikonok TELJES unicode tartomÃ¡nya
+                // KibÅ‘vÃ­tett range, hogy minden ikon megjelenjen
                 ushort[] iconRanges = new ushort[] 
                 { 
-                    0xf000, 0xf8ff,  // Font Awesome összes standard és extended ikonja
+                    0xf000, 0xf8ff,  // Font Awesome Ã¶sszes standard Ã©s extended ikonja
                     0 
                 };
                 
@@ -751,19 +754,21 @@ internal sealed class ImGuiController : IDisposable
                 {
                     io.Fonts.AddFontFromFileTTF(fontPath, 13.0f, fontConfig, (IntPtr)rangePtr);
                 }
-                
-                Console.WriteLine("???????????????????????????????????????????????????????????");
-                Console.WriteLine("? Font Awesome loaded successfully!");
-                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("===========================================================");
+                Console.WriteLine("âœ“ Font Awesome loaded successfully!");
+                Console.WriteLine("===========================================================");
                 Console.WriteLine($"  Path: {fontPath}");
                 Console.WriteLine($"  Icon Range: U+F000 to U+F8FF ({0xf8ff - 0xf000 + 1} glyphs)");
-                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine("===========================================================");
+                
             }
             else
             {
-                Console.WriteLine("???????????????????????????????????????????????????????????");
-                Console.WriteLine("?  Font Awesome NOT FOUND - Icons will show as '?'");
-                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("===========================================================");
+                Console.WriteLine("   Font Awesome NOT FOUND - Icons will show as '?'");
+                Console.WriteLine("===========================================================");
                 Console.WriteLine($"  Expected path: {fontPath}");
                 Console.WriteLine();
                 Console.WriteLine("  SETUP INSTRUCTIONS:");
@@ -773,14 +778,17 @@ internal sealed class ImGuiController : IDisposable
                 Console.WriteLine("  4. Create folder: ReadyForAlgorithm.ImGui\\Fonts\\");
                 Console.WriteLine("  5. Copy fa-solid-900.ttf to the Fonts folder");
                 Console.WriteLine("  6. Rebuild and run the application");
-                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine("===========================================================");
+                
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"? Error loading fonts: {ex.Message}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"âœ— Error loading fonts: {ex.Message}");
             Console.WriteLine($"  Stack trace: {ex.StackTrace}");
         }
+        Console.ResetColor();
     }
 
     public void PressChar(char keyChar)
