@@ -144,17 +144,17 @@ internal sealed class RoverImGuiWindow : GameWindow
 
     private void DrawGameOverWindow()
     {
-        // Az ablakot a képernyõ közepére pozicionáljuk
+        // Az ablakot a képerny? közepére pozicionáljuk
         ImGuiViewportPtr viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new System.Numerics.Vector2(viewport.Size.X * 0.5f, viewport.Size.Y * 0.5f), ImGuiCond.Always, new System.Numerics.Vector2(0.5f, 0.5f));
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200));
 
         ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize;
 
-        ImGui.Begin("MISSION TERMINATED", flags);
+        ImGui.Begin($"{FontAwesome6.Skull} MISSION TERMINATED", flags);
 
         // Nagy piros "GAME OVER" szöveg
-        ImGui.SetWindowFontScale(2.5f); // Megnöveljük a betûméretet
+        ImGui.SetWindowFontScale(2.5f); // Megnöveljük a bet?méretet
         ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0, 0, 1)); // Piros szín
         float textWidth = ImGui.CalcTextSize("GAME OVER").X;
         ImGui.SetCursorPosX((ImGui.GetWindowSize().X - textWidth) * 0.5f);
@@ -169,7 +169,7 @@ internal sealed class RoverImGuiWindow : GameWindow
         ImGui.TextWrapped("The mission has failed, because the allocated time has expired. The rover is now out of communication window.");
 
         ImGui.Spacing();
-        if (ImGui.Button("RESTART MISSION", new System.Numerics.Vector2(-1, 40)))
+        if (ImGui.Button($"{FontAwesome6.RotateRight} RESTART MISSION", new System.Numerics.Vector2(-1, 40)))
         {
             isGameOver = false;
             isSimulationStarted = false;
@@ -217,28 +217,28 @@ internal sealed class RoverImGuiWindow : GameWindow
     private void DrawMissionControl(SimulationSnapshot snapshot)
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(360, 170), ImGuiCond.FirstUseEver);
-        ImGui.Begin("Mission Control");
+        ImGui.Begin($"{FontAwesome6.Satellite} Mission Control");
 
-        ImGui.TextUnformatted($"Status: {snapshot.StatusMessage}");
+        ImGui.TextUnformatted($"{FontAwesome6.Info} Status: {snapshot.StatusMessage}");
 
-        if (ImGui.Button("Slow"))
+        if (ImGui.Button($"{FontAwesome6.SpeedSlow} Slow"))
         {
             simulation.SetSpeed(RoverSpeedMode.Slow);
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Normal"))
+        if (ImGui.Button($"{FontAwesome6.SpeedNormal} Normal"))
         {
             simulation.SetSpeed(RoverSpeedMode.Normal);
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Fast"))
+        if (ImGui.Button($"{FontAwesome6.SpeedFast} Fast"))
         {
             simulation.SetSpeed(RoverSpeedMode.Fast);
         }
 
-        if (ImGui.Button(snapshot.IsPaused ? "Resume" : "Pause"))
+        if (ImGui.Button(snapshot.IsPaused ? $"{FontAwesome6.Play} Resume" : $"{FontAwesome6.Pause} Pause"))
         {
             simulation.TogglePause();
         }
@@ -249,23 +249,35 @@ internal sealed class RoverImGuiWindow : GameWindow
     private static void DrawStatsWindow(SimulationSnapshot snapshot, float remainingHours)
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(320, 240), ImGuiCond.FirstUseEver);
-        ImGui.Begin("Telemetry");
-        ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.0f, 1.0f), $"MISSION TIME REMAINING: {(int)remainingHours} h");
+        ImGui.Begin($"{FontAwesome6.ChartLine} Telemetry");
+        
+        ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.0f, 1.0f), $"{FontAwesome6.Clock} MISSION TIME REMAINING: {(int)remainingHours} h");
         ImGui.Separator();
-        ImGui.TextUnformatted($"Battery: {snapshot.Battery}%");
-        ImGui.TextUnformatted($"Time: {snapshot.TimeLabel}");
-        ImGui.TextUnformatted($"Position: {snapshot.RoverPosition.X}, {snapshot.RoverPosition.Y}");
-        ImGui.TextUnformatted($"Speed: {snapshot.SpeedMode}");
-        ImGui.TextUnformatted($"Paused: {(snapshot.IsPaused ? "Yes" : "No")}");
-        ImGui.TextUnformatted($"Samples: {snapshot.CollectedGoalCount}/{snapshot.TotalGoalCount}");
-        ImGui.TextUnformatted($"Remaining goals: {snapshot.RemainingGoals.Count}");
+        
+        string batteryIcon = snapshot.Battery switch
+        {
+            >= 75 => FontAwesome6.BatteryFull,
+            >= 50 => FontAwesome6.BatteryThreeQuarters,
+            >= 25 => FontAwesome6.BatteryHalf,
+            >= 10 => FontAwesome6.BatteryQuarter,
+            _ => FontAwesome6.BatteryEmpty
+        };
+        
+        ImGui.TextUnformatted($"{batteryIcon} Battery: {snapshot.Battery}%");
+        ImGui.TextUnformatted($"{FontAwesome6.Clock} Time: {snapshot.TimeLabel}");
+        ImGui.TextUnformatted($"{FontAwesome6.LocationDot} Position: {snapshot.RoverPosition.X}, {snapshot.RoverPosition.Y}");
+        ImGui.TextUnformatted($"{FontAwesome6.Gauge} Speed: {snapshot.SpeedMode}");
+        ImGui.TextUnformatted($"{(snapshot.IsPaused ? FontAwesome6.Pause : FontAwesome6.Play)} Paused: {(snapshot.IsPaused ? "Yes" : "No")}");
+        ImGui.TextUnformatted($"{FontAwesome6.ListCheck} Samples: {snapshot.CollectedGoalCount}/{snapshot.TotalGoalCount}");
+        ImGui.TextUnformatted($"{FontAwesome6.Bullseye} Remaining goals: {snapshot.RemainingGoals.Count}");
+        
         ImGui.End();
     }
 
     private static void DrawLogWindow(SimulationSnapshot snapshot)
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(660, 340), ImGuiCond.FirstUseEver);
-        ImGui.Begin("Console Log");
+        ImGui.Begin($"{FontAwesome6.Terminal} Console Log");
         ImGui.BeginChild("LogScroll", new System.Numerics.Vector2(0, 0));
         foreach (RoverLogEntry log in snapshot.Logs.TakeLast(40))
         {
@@ -278,7 +290,7 @@ internal sealed class RoverImGuiWindow : GameWindow
     private void DrawLauncherWindow()
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200), ImGuiCond.Always);
-        ImGui.Begin("Mission Setup", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+        ImGui.Begin($"{FontAwesome6.Rocket} Mission Setup", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
 
         ImGui.Text("Please input the time for the mission!");
         ImGui.Separator();
@@ -287,12 +299,12 @@ internal sealed class RoverImGuiWindow : GameWindow
 
         if (missionDurationHours < 24)
         {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Error! 24 hours is the minimum");
+            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), $"{FontAwesome6.TriangleExclamation} Error! 24 hours is the minimum");
             ImGui.BeginDisabled();
         }
 
         ImGui.Spacing();
-        if (ImGui.Button("MISSION BEGIN", new System.Numerics.Vector2(-1, 40)))
+        if (ImGui.Button($"{FontAwesome6.Rocket} MISSION BEGIN", new System.Numerics.Vector2(-1, 40)))
         {
             isSimulationStarted = true;
             remainingMissionHours = missionDurationHours;
@@ -309,7 +321,7 @@ internal sealed class RoverImGuiWindow : GameWindow
     private static void DrawMapWindow(SimulationSnapshot snapshot)
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(520, 520), ImGuiCond.FirstUseEver);
-        ImGui.Begin("Map Grid");
+        ImGui.Begin($"{FontAwesome6.Map} Map Grid");
         ImGui.BeginChild("MapCanvas", new System.Numerics.Vector2(0, 0));
 
         HashSet<GridPosition> remainingGoals = snapshot.RemainingGoals.ToHashSet();
@@ -400,7 +412,9 @@ internal sealed class ImGuiController : IDisposable
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
-        io.Fonts.AddFontDefault();
+        
+        // Load fonts - FONTOS: AddFontDefault el?tt kell meghívni!
+        LoadFonts(io);
 
         vertexBufferSize = 10_000;
         indexBufferSize = 2_000;
@@ -409,6 +423,69 @@ internal sealed class ImGuiController : IDisposable
         SetPerFrameImGuiData(1f / 60f);
         ImGui.NewFrame();
         frameBegun = true;
+    }
+
+    private unsafe void LoadFonts(ImGuiIOPtr io)
+    {
+        try
+        {
+            // Alapértelmezett font betöltése
+            io.Fonts.AddFontDefault();
+            
+            string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Fonts", "fa-solid-900.ttf");
+            
+            if (File.Exists(fontPath))
+            {
+                // Font Awesome merge-elése az alap fonttal
+                ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+                fontConfig.MergeMode = true;
+                fontConfig.PixelSnapH = true;
+                fontConfig.GlyphMinAdvanceX = 13.0f;
+                fontConfig.OversampleH = 1;
+                fontConfig.OversampleV = 1;
+
+                // Font Awesome 6 Free Solid ikonok TELJES unicode tartománya
+                // Kib?vített range, hogy minden ikon megjelenjen
+                ushort[] iconRanges = new ushort[] 
+                { 
+                    0xf000, 0xf8ff,  // Font Awesome összes standard és extended ikonja
+                    0 
+                };
+                
+                fixed (ushort* rangePtr = iconRanges)
+                {
+                    io.Fonts.AddFontFromFileTTF(fontPath, 13.0f, fontConfig, (IntPtr)rangePtr);
+                }
+                
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine("? Font Awesome loaded successfully!");
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine($"  Path: {fontPath}");
+                Console.WriteLine($"  Icon Range: U+F000 to U+F8FF ({0xf8ff - 0xf000 + 1} glyphs)");
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+            }
+            else
+            {
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine("?  Font Awesome NOT FOUND - Icons will show as '?'");
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+                Console.WriteLine($"  Expected path: {fontPath}");
+                Console.WriteLine();
+                Console.WriteLine("  SETUP INSTRUCTIONS:");
+                Console.WriteLine("  1. Download: https://fontawesome.com/download");
+                Console.WriteLine("  2. Extract the ZIP file");
+                Console.WriteLine("  3. Find 'fa-solid-900.ttf' in webfonts or otfs folder");
+                Console.WriteLine("  4. Create folder: ReadyForAlgorithm.ImGui\\Fonts\\");
+                Console.WriteLine("  5. Copy fa-solid-900.ttf to the Fonts folder");
+                Console.WriteLine("  6. Rebuild and run the application");
+                Console.WriteLine("???????????????????????????????????????????????????????????");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"? Error loading fonts: {ex.Message}");
+            Console.WriteLine($"  Stack trace: {ex.StackTrace}");
+        }
     }
 
     public void PressChar(char keyChar)
