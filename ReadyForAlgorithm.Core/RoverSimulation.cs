@@ -25,6 +25,9 @@ public sealed class RoverSimulation
     private bool batteryStopLogged;
     private bool lastNightState;
 
+    private int miningTimeAccumulator = 0;
+    private const int MiningDuration = 2000;
+
     public RoverSimulation(char[,] sourceTerrain)
     {
         terrain = (char[,])sourceTerrain.Clone();
@@ -220,8 +223,8 @@ public sealed class RoverSimulation
     {
         logAccumulator += elapsedMilliseconds;
         batteryDrainAccumulator += elapsedMilliseconds;
-        movementAccumulator += elapsedMilliseconds;
 
+        // 1. Napelemes töltés (ha nappal van)
         if (!IsNight)
         {
             batteryChargeAccumulator += elapsedMilliseconds;
@@ -232,20 +235,45 @@ public sealed class RoverSimulation
             }
         }
 
+        // 2. Energiafogyasztás kezelése (Bányászat vagy Mozgás alapján)
         while (batteryDrainAccumulator >= TickLogIntervalMilliseconds)
         {
             batteryDrainAccumulator -= TickLogIntervalMilliseconds;
-            int speedValue = GetSpeedValue(SpeedMode);
-            ChangeBattery(-(2 * speedValue * speedValue));
+            if (miningTimeAccumulator > 0)
+            {
+                ChangeBattery(-2); // Bányászati fogyasztás (1 egység / mp)
+            }
+            else
+            {
+                int speedValue = GetSpeedValue(SpeedMode);
+                ChangeBattery(-(2 * speedValue * speedValue)); // Mozgási fogyasztás
+            }
         }
 
-        int stepDuration = GetStepDuration(SpeedMode);
-        while (!IsPaused && !IsComplete && movementAccumulator >= stepDuration)
+        // 3. Cselekvés kezelése
+        if (miningTimeAccumulator > 0)
         {
-            movementAccumulator -= stepDuration;
-            AdvanceRouteStep();
+            // Éppen bányászunk, nem mozdulunk, csak az idõ telik
+            miningTimeAccumulator -= elapsedMilliseconds;
+            if (miningTimeAccumulator <= 0)
+            {
+                miningTimeAccumulator = 0;
+                StatusMessage = "Mining is finished!";
+            }
+        }
+        else if (IsPaused == false && IsComplete == false)
+        {
+            // Ha nincs megállítva és nem bányászunk, akkor haladunk a következõ mezõre
+            movementAccumulator += elapsedMilliseconds;
+            int stepDuration = GetStepDuration(SpeedMode);
+            while (movementAccumulator >= stepDuration)
+            {
+                movementAccumulator -= stepDuration;
+                AdvanceRouteStep();
+            }
         }
 
+        // 4. Állapotnaplózás (periodic log)
         EmitPeriodicStatus(0);
     }
 
@@ -269,7 +297,8 @@ public sealed class RoverSimulation
 
         if (IsGoal(RoverPosition))
         {
-            AppendLog($"Minta begyujtve: {RoverPosition.X}, {RoverPosition.Y}");
+            AppendLog($"Minta eszlelve! Mining inditasa: {RoverPosition.X}, {RoverPosition.Y}");
+            miningTimeAccumulator = MiningDuration;
         }
 
         if (routeIndex >= route.Count - 1)

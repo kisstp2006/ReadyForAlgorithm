@@ -18,20 +18,42 @@ internal static class Program
             Title = "Mars Rover ImGui"
         };
 
-        using RoverImGuiWindow window = new(args.FirstOrDefault(), GameWindowSettings.Default, nativeWindowSettings);
+        string? mapPath = args.ElementAtOrDefault(0);
+
+        int duration = 24;
+        if (args.Length > 1 && int.TryParse(args[1], out int parsedDuration))
+        {
+            duration = parsedDuration;
+        }
+
+        using RoverImGuiWindow window = new(mapPath, duration/*, args.FirstOrDefault()*/, GameWindowSettings.Default, nativeWindowSettings);
         window.Run();
     }
 }
 
 internal sealed class RoverImGuiWindow : GameWindow
 {
+    private void GameOver()
+    {
+        isGameOver = true;
+        simulation.TogglePause();
+    }
     private readonly RoverSimulation simulation;
     private ImGuiController? controller;
 
-    public RoverImGuiWindow(string? mapPath, GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
+    private int missionDurationHours = 24;
+    private bool isSimulationStarted = false;
+    private float remainingMissionHours;
+    private double timeAccumulator = 0;
+    private bool isGameOver = false;
+
+    public RoverImGuiWindow(string? mapPath, int duration, GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
         : base(gameWindowSettings, nativeWindowSettings)
     {
         simulation = RoverSimulation.CreateFromFile(mapPath);
+        this.isSimulationStarted = true;
+        this.missionDurationHours = duration;
+        this.remainingMissionHours = duration;
     }
 
     protected override void OnLoad()
@@ -39,6 +61,8 @@ internal sealed class RoverImGuiWindow : GameWindow
         base.OnLoad();
         GL.ClearColor(0.08f, 0.1f, 0.13f, 1f);
         controller = new ImGuiController(ClientSize.X, ClientSize.Y);
+
+        TextInput += e => controller.PressChar((char)e.Unicode);
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -63,15 +87,89 @@ internal sealed class RoverImGuiWindow : GameWindow
         controller.Update(this, (float)args.Time);
         DrawDockSpace();
 
-        SimulationSnapshot snapshot = simulation.CreateSnapshot();
-        DrawMissionControl(snapshot);
-        DrawMapWindow(snapshot);
-        DrawStatsWindow(snapshot);
-        DrawLogWindow(snapshot);
+        if(isSimulationStarted == false)
+        {
+            DrawLauncherWindow();
+        }
+        else
+        {
+            if(isGameOver == false)
+            {
+                timeAccumulator += args.Time;
+                if (timeAccumulator >= 4.0)
+                {
+                    remainingMissionHours -= 1;
+                    timeAccumulator -= 4.0;
+
+                    if (remainingMissionHours < 0)
+                    {
+                        remainingMissionHours = 0;
+                        GameOver();
+                    }
+                }
+            }
+            
+
+            elapsedMilliseconds = Math.Max(1, (int)(args.Time * 1000d));
+            simulation.Update(elapsedMilliseconds);
+
+            SimulationSnapshot snapshot = simulation.CreateSnapshot();
+            DrawMissionControl(snapshot);
+            DrawMapWindow(snapshot);
+            DrawStatsWindow(snapshot, remainingMissionHours);
+            DrawLogWindow(snapshot);
+
+            if(isGameOver == true)
+            {
+                DrawGameOverWindow();
+            }
+        }
+
 
         GL.Clear(ClearBufferMask.ColorBufferBit);
         controller.Render();
         SwapBuffers();
+    }
+
+    private void DrawGameOverWindow()
+    {
+        // Az ablakot a képernyõ közepére pozicionáljuk
+        ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(new System.Numerics.Vector2(viewport.Size.X * 0.5f, viewport.Size.Y * 0.5f), ImGuiCond.Always, new System.Numerics.Vector2(0.5f, 0.5f));
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200));
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize;
+
+        ImGui.Begin("MISSION TERMINATED", flags);
+
+        // Nagy piros "GAME OVER" szöveg
+        ImGui.SetWindowFontScale(2.5f); // Megnöveljük a betûméretet
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0, 0, 1)); // Piros szín
+        float textWidth = ImGui.CalcTextSize("GAME OVER").X;
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - textWidth) * 0.5f);
+        ImGui.Text("GAME OVER");
+        ImGui.PopStyleColor();
+        ImGui.SetWindowFontScale(1.0f); // Visszaállítjuk a méretet
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Az ok kifejtése
+        ImGui.TextWrapped("The mission has failed because the allocated time has expired. The rover is now out of communication window.");
+
+        ImGui.Spacing();
+        if (ImGui.Button("RESTART MISSION", new System.Numerics.Vector2(-1, 40)))
+        {
+            // Itt egyszerûen visszaállíthatod a változókat az alaphelyzetbe
+            isGameOver = false;
+            isSimulationStarted = false;
+            timeAccumulator = 0;
+            // Ha van Restart funkció a szimulációban, azt is hívd meg:
+            // simulation.Reset(); 
+        }
+
+        ImGui.End();
     }
 
     protected override void OnUnload()
@@ -139,10 +237,12 @@ internal sealed class RoverImGuiWindow : GameWindow
         ImGui.End();
     }
 
-    private static void DrawStatsWindow(SimulationSnapshot snapshot)
+    private static void DrawStatsWindow(SimulationSnapshot snapshot, float remainingHours)
     {
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(320, 240), ImGuiCond.FirstUseEver);
         ImGui.Begin("Telemetry");
+        ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.0f, 1.0f), $"MISSION TIME REMAINING: {(int)remainingHours} h");
+        ImGui.Separator();
         ImGui.TextUnformatted($"Battery: {snapshot.Battery}%");
         ImGui.TextUnformatted($"Time: {snapshot.TimeLabel}");
         ImGui.TextUnformatted($"Position: {snapshot.RoverPosition.X}, {snapshot.RoverPosition.Y}");
@@ -163,6 +263,37 @@ internal sealed class RoverImGuiWindow : GameWindow
             ImGui.TextUnformatted($"[{FormatLogTime(log.Tick)}] {log.Message}");
         }
         ImGui.EndChild();
+        ImGui.End();
+    }
+
+    private void DrawLauncherWindow()
+    {
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200), ImGuiCond.Always);
+        ImGui.Begin("Mission Setup", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+
+        ImGui.Text("Please input the time for the mission!");
+        ImGui.Separator();
+
+        ImGui.InputInt("Time (hours)", ref missionDurationHours);
+
+        if (missionDurationHours < 24)
+        {
+            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Error! 24 hours is the minimum");
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.Spacing();
+        if (ImGui.Button("MISSION BEGIN", new System.Numerics.Vector2(-1, 40)))
+        {
+            isSimulationStarted = true;
+            remainingMissionHours = missionDurationHours;
+        }
+
+        if (missionDurationHours < 24)
+        {
+            ImGui.EndDisabled();
+        }
+
         ImGui.End();
     }
 
@@ -269,6 +400,12 @@ internal sealed class ImGuiController : IDisposable
         SetPerFrameImGuiData(1f / 60f);
         ImGui.NewFrame();
         frameBegun = true;
+    }
+
+    public void PressChar(char keyChar)
+    {
+        ImGuiIOPtr io = ImGui.GetIO();
+        io.AddInputCharacter(keyChar);
     }
 
     public void Resize(int width, int height)
