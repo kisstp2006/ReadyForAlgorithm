@@ -70,7 +70,8 @@ internal sealed class RoverImGuiWindow : GameWindow
     protected override void OnLoad()
     {
         base.OnLoad();
-        GL.ClearColor(0.08f, 0.1f, 0.13f, 1f);
+        // Modern sötét háttér - mélyebb, elegánsabb árnyalat
+        GL.ClearColor(0.06f, 0.07f, 0.09f, 1f);
         controller = new ImGuiController(ClientSize.X, ClientSize.Y);
 
         TextInput += e => controller.PressChar((char)e.Unicode);
@@ -144,32 +145,54 @@ internal sealed class RoverImGuiWindow : GameWindow
 
     private void DrawGameOverWindow()
     {
-        // Az ablakot a képerny? közepére pozicionáljuk
         ImGuiViewportPtr viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new System.Numerics.Vector2(viewport.Size.X * 0.5f, viewport.Size.Y * 0.5f), ImGuiCond.Always, new System.Numerics.Vector2(0.5f, 0.5f));
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200));
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(500, 280));
 
         ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.AlwaysAutoResize;
 
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.12f, 0.08f, 0.08f, 0.98f));
         ImGui.Begin($"{FontAwesome6.Skull} MISSION TERMINATED", flags);
-
-        // Nagy piros "GAME OVER" szöveg
-        ImGui.SetWindowFontScale(2.5f); // Megnöveljük a bet?méretet
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0, 0, 1)); // Piros szín
-        float textWidth = ImGui.CalcTextSize("GAME OVER").X;
-        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - textWidth) * 0.5f);
-        ImGui.Text("GAME OVER");
         ImGui.PopStyleColor();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+        
+        // Nagy piros "GAME OVER" szöveg
+        ImGui.PushFont(ImGui.GetIO().Fonts.Fonts[0]);
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.2f, 0.2f, 1.0f));
+        float textWidth = ImGui.CalcTextSize("GAME OVER").X * 2.5f;
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - textWidth) * 0.5f);
+        ImGui.SetWindowFontScale(2.5f);
+        ImGui.Text("GAME OVER");
         ImGui.SetWindowFontScale(1.0f);
+        ImGui.PopStyleColor();
+        ImGui.PopFont();
 
         ImGui.Spacing();
+        ImGui.Spacing();
+        
+        ImGui.PushStyleColor(ImGuiCol.Separator, new Vector4(0.6f, 0.2f, 0.2f, 1.0f));
         ImGui.Separator();
+        ImGui.PopStyleColor();
+        
+        ImGui.Spacing();
         ImGui.Spacing();
 
-        ImGui.TextWrapped("The mission has failed, because the allocated time has expired. The rover is now out of communication window.");
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.85f, 0.85f, 0.85f, 1.0f));
+        ImGui.TextWrapped("The mission has failed because the allocated time has expired. The rover is now outside the communication window and cannot be recovered.");
+        ImGui.PopStyleColor();
 
         ImGui.Spacing();
-        if (ImGui.Button($"{FontAwesome6.RotateRight} RESTART MISSION", new System.Numerics.Vector2(-1, 40)))
+        ImGui.Spacing();
+        ImGui.Spacing();
+        
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.3f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.4f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.6f, 0.2f, 0.1f, 1.0f));
+        
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - 280) * 0.5f);
+        if (ImGui.Button($"{FontAwesome6.RotateRight} RESTART MISSION", new System.Numerics.Vector2(280, 45)))
         {
             isGameOver = false;
             isSimulationStarted = false;
@@ -177,6 +200,10 @@ internal sealed class RoverImGuiWindow : GameWindow
 
             simulation = RoverSimulation.CreateFromFile(loadedMapPath);
         }
+        
+        ImGui.PopStyleColor(3);
+
+        ImGui.Spacing();
 
         ImGui.End();
     }
@@ -216,44 +243,84 @@ internal sealed class RoverImGuiWindow : GameWindow
 
     private void DrawMissionControl(SimulationSnapshot snapshot)
     {
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(360, 170), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200), ImGuiCond.FirstUseEver);
         ImGui.Begin($"{FontAwesome6.Satellite} Mission Control");
 
-        ImGui.TextUnformatted($"{FontAwesome6.Info} Status: {snapshot.StatusMessage}");
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.85f, 1.0f, 1.0f));
+        ImGui.TextUnformatted($"{FontAwesome6.Info} Status");
+        ImGui.PopStyleColor();
+        ImGui.SameLine();
+        ImGui.TextWrapped(snapshot.StatusMessage);
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        ImGui.TextUnformatted("Speed Control");
+        ImGui.Spacing();
 
-        if (ImGui.Button($"{FontAwesome6.SpeedSlow} Slow"))
+        float buttonWidth = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X * 2) / 3.0f;
+        
+        if (ImGui.Button($"{FontAwesome6.SpeedSlow} Slow", new Vector2(buttonWidth, 32)))
         {
             simulation.SetSpeed(RoverSpeedMode.Slow);
         }
 
         ImGui.SameLine();
-        if (ImGui.Button($"{FontAwesome6.SpeedNormal} Normal"))
+        if (ImGui.Button($"{FontAwesome6.SpeedNormal} Normal", new Vector2(buttonWidth, 32)))
         {
             simulation.SetSpeed(RoverSpeedMode.Normal);
         }
 
         ImGui.SameLine();
-        if (ImGui.Button($"{FontAwesome6.SpeedFast} Fast"))
+        if (ImGui.Button($"{FontAwesome6.SpeedFast} Fast", new Vector2(buttonWidth, 32)))
         {
             simulation.SetSpeed(RoverSpeedMode.Fast);
         }
 
-        if (ImGui.Button(snapshot.IsPaused ? $"{FontAwesome6.Play} Resume" : $"{FontAwesome6.Pause} Pause"))
+        ImGui.Spacing();
+        
+        ImGui.PushStyleColor(ImGuiCol.Button, snapshot.IsPaused ? new Vector4(0.2f, 0.6f, 0.3f, 1.0f) : new Vector4(0.8f, 0.5f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, snapshot.IsPaused ? new Vector4(0.3f, 0.7f, 0.4f, 1.0f) : new Vector4(0.9f, 0.6f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, snapshot.IsPaused ? new Vector4(0.15f, 0.5f, 0.25f, 1.0f) : new Vector4(0.7f, 0.4f, 0.1f, 1.0f));
+        
+        if (ImGui.Button(snapshot.IsPaused ? $"{FontAwesome6.Play} Resume" : $"{FontAwesome6.Pause} Pause", new Vector2(-1, 36)))
         {
             simulation.TogglePause();
         }
+        
+        ImGui.PopStyleColor(3);
 
         ImGui.End();
     }
 
     private static void DrawStatsWindow(SimulationSnapshot snapshot, float remainingHours)
     {
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(320, 240), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(380, 300), ImGuiCond.FirstUseEver);
         ImGui.Begin($"{FontAwesome6.ChartLine} Telemetry");
         
-        ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.0f, 1.0f), $"{FontAwesome6.Clock} MISSION TIME REMAINING: {(int)remainingHours} h");
-        ImGui.Separator();
+        // Mission time header - Prominens kijelzés
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.15f, 0.18f, 0.25f, 1.0f));
+        ImGui.BeginChild("MissionTime", new Vector2(0, 50), ImGuiChildFlags.Borders);
+
+        ImGui.PushFont(ImGui.GetIO().Fonts.Fonts[0]);
+        float timeTextWidth = ImGui.CalcTextSize($"{FontAwesome6.Clock} MISSION TIME").X;
+        ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X - timeTextWidth) * 0.5f);
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.85f, 1.0f, 1.0f));
+        ImGui.TextUnformatted($"{FontAwesome6.Clock} MISSION TIME");
+        ImGui.PopStyleColor();
         
+        string timeStr = $"{(int)remainingHours} hours";
+        float timeValueWidth = ImGui.CalcTextSize(timeStr).X;
+        ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X - timeValueWidth) * 0.5f);
+        ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.0f, 1.0f), timeStr);
+        ImGui.PopFont();
+        ImGui.EndChild();
+        ImGui.PopStyleColor();
+        
+        ImGui.Spacing();
+        
+        // Telemetry data in a table-like format
         string batteryIcon = snapshot.Battery switch
         {
             >= 75 => FontAwesome6.BatteryFull,
@@ -263,52 +330,165 @@ internal sealed class RoverImGuiWindow : GameWindow
             _ => FontAwesome6.BatteryEmpty
         };
         
-        ImGui.TextUnformatted($"{batteryIcon} Battery: {snapshot.Battery}%");
-        ImGui.TextUnformatted($"{FontAwesome6.Clock} Time: {snapshot.TimeLabel}");
-        ImGui.TextUnformatted($"{FontAwesome6.LocationDot} Position: {snapshot.RoverPosition.X}, {snapshot.RoverPosition.Y}");
-        ImGui.TextUnformatted($"{FontAwesome6.Gauge} Speed: {snapshot.SpeedMode}");
-        ImGui.TextUnformatted($"{(snapshot.IsPaused ? FontAwesome6.Pause : FontAwesome6.Play)} Paused: {(snapshot.IsPaused ? "Yes" : "No")}");
-        ImGui.TextUnformatted($"{FontAwesome6.ListCheck} Samples: {snapshot.CollectedGoalCount}/{snapshot.TotalGoalCount}");
-        ImGui.TextUnformatted($"{FontAwesome6.Bullseye} Remaining goals: {snapshot.RemainingGoals.Count}");
+        Vector4 batteryColor = snapshot.Battery switch
+        {
+            >= 75 => new Vector4(0.2f, 0.8f, 0.3f, 1.0f),
+            >= 50 => new Vector4(0.5f, 0.8f, 0.3f, 1.0f),
+            >= 25 => new Vector4(0.9f, 0.7f, 0.2f, 1.0f),
+            >= 10 => new Vector4(0.9f, 0.5f, 0.1f, 1.0f),
+            _ => new Vector4(0.9f, 0.2f, 0.2f, 1.0f)
+        };
+        
+        DrawTelemetryRow(batteryIcon, "Battery", $"{snapshot.Battery}%", batteryColor);
+        DrawTelemetryRow(FontAwesome6.Clock, "Time", snapshot.TimeLabel);
+        DrawTelemetryRow(FontAwesome6.LocationDot, "Position", $"{snapshot.RoverPosition.X}, {snapshot.RoverPosition.Y}");
+        DrawTelemetryRow(FontAwesome6.Gauge, "Speed", snapshot.SpeedMode.ToString());
+        DrawTelemetryRow(snapshot.IsPaused ? FontAwesome6.Pause : FontAwesome6.Play, "Status", snapshot.IsPaused ? "Paused" : "Running", snapshot.IsPaused ? new Vector4(0.9f, 0.6f, 0.2f, 1.0f) : new Vector4(0.3f, 0.8f, 0.4f, 1.0f));
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        DrawTelemetryRow(FontAwesome6.ListCheck, "Samples", $"{snapshot.CollectedGoalCount} / {snapshot.TotalGoalCount}");
+        DrawTelemetryRow(FontAwesome6.Bullseye, "Remaining", snapshot.RemainingGoals.Count.ToString());
         
         ImGui.End();
+    }
+    
+    private static void DrawTelemetryRow(string icon, string label, string value, Vector4? valueColor = null)
+    {
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.6f, 0.7f, 0.8f, 1.0f));
+        ImGui.TextUnformatted($"{icon} {label}:");
+        ImGui.PopStyleColor();
+        
+        ImGui.SameLine(140);
+        
+        if (valueColor.HasValue)
+        {
+            ImGui.TextColored(valueColor.Value, value);
+        }
+        else
+        {
+            ImGui.TextUnformatted(value);
+        }
     }
 
     private static void DrawLogWindow(SimulationSnapshot snapshot)
     {
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(660, 340), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(700, 380), ImGuiCond.FirstUseEver);
         ImGui.Begin($"{FontAwesome6.Terminal} Console Log");
-        ImGui.BeginChild("LogScroll", new System.Numerics.Vector2(0, 0));
+        
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.05f, 0.06f, 0.08f, 1.0f));
+        ImGui.BeginChild("LogScroll", new System.Numerics.Vector2(0, 0), ImGuiChildFlags.Borders);
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 2));
+        
         foreach (RoverLogEntry log in snapshot.Logs.TakeLast(40))
         {
-            ImGui.TextUnformatted($"[{FormatLogTime(log.Tick)}] {log.Message}");
+            string timeStr = $"[{FormatLogTime(log.Tick)}]";
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.6f, 0.7f, 1.0f));
+            ImGui.TextUnformatted(timeStr);
+            ImGui.PopStyleColor();
+            
+            ImGui.SameLine();
+            
+            // Színezés a log típusa alapján
+            Vector4 logColor = new Vector4(0.85f, 0.87f, 0.90f, 1.0f);
+            if (log.Message.Contains("Battery") || log.Message.Contains("battery"))
+            {
+                logColor = new Vector4(0.9f, 0.7f, 0.2f, 1.0f);
+            }
+            else if (log.Message.Contains("detected") || log.Message.Contains("Mining"))
+            {
+                logColor = new Vector4(0.3f, 0.9f, 0.5f, 1.0f);
+            }
+            else if (log.Message.Contains("pause") || log.Message.Contains("dead"))
+            {
+                logColor = new Vector4(0.9f, 0.4f, 0.3f, 1.0f);
+            }
+            else if (log.Message.Contains("Speed") || log.Message.Contains("Status"))
+            {
+                logColor = new Vector4(0.5f, 0.7f, 0.9f, 1.0f);
+            }
+            
+            ImGui.TextColored(logColor, log.Message);
         }
+        
+        ImGui.PopStyleVar();
+        
+        // Auto-scroll to bottom
+        if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+        {
+            ImGui.SetScrollHereY(1.0f);
+        }
+        
         ImGui.EndChild();
+        ImGui.PopStyleColor();
+        
         ImGui.End();
     }
 
     private void DrawLauncherWindow()
     {
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(400, 200), ImGuiCond.Always);
-        ImGui.Begin($"{FontAwesome6.Rocket} Mission Setup", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+        ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(new System.Numerics.Vector2(viewport.Size.X * 0.5f, viewport.Size.Y * 0.5f), ImGuiCond.Always, new System.Numerics.Vector2(0.5f, 0.5f));
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(450, 250), ImGuiCond.Always);
+        
+        ImGui.Begin($"{FontAwesome6.Rocket} Mission Setup", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove);
 
-        ImGui.Text("Please input the time for the mission!");
+        ImGui.Spacing();
+        ImGui.PushFont(ImGui.GetIO().Fonts.Fonts[0]);
+        
+        float titleWidth = ImGui.CalcTextSize("Configure Mission Parameters").X;
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - titleWidth) * 0.5f);
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.85f, 1.0f, 1.0f));
+        ImGui.TextUnformatted("Configure Mission Parameters");
+        ImGui.PopStyleColor();
+        
+        ImGui.PopFont();
+        ImGui.Spacing();
         ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.Spacing();
 
-        ImGui.InputInt("Time (hours)", ref missionDurationHours);
+        ImGui.PushItemWidth(200);
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - 200) * 0.5f);
+        ImGui.InputInt("##MissionHours", ref missionDurationHours);
+        ImGui.PopItemWidth();
+        
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - ImGui.CalcTextSize("Mission Duration (hours)").X) * 0.5f);
+        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.75f, 0.8f, 1.0f));
+        ImGui.TextUnformatted("Mission Duration (hours)");
+        ImGui.PopStyleColor();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
 
         if (missionDurationHours < 24)
         {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), $"{FontAwesome6.TriangleExclamation} Error! 24 hours is the minimum");
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.9f, 0.3f, 0.3f, 1.0f));
+            float errorWidth = ImGui.CalcTextSize($"{FontAwesome6.TriangleExclamation} Minimum 24 hours required").X;
+            ImGui.SetCursorPosX((ImGui.GetWindowSize().X - errorWidth) * 0.5f);
+            ImGui.TextUnformatted($"{FontAwesome6.TriangleExclamation} Minimum 24 hours required");
+            ImGui.PopStyleColor();
             ImGui.BeginDisabled();
         }
 
         ImGui.Spacing();
-        if (ImGui.Button($"{FontAwesome6.Rocket} MISSION BEGIN", new System.Numerics.Vector2(-1, 40)))
+        ImGui.Spacing();
+        
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.6f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.7f, 0.4f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.15f, 0.5f, 0.25f, 1.0f));
+        
+        ImGui.SetCursorPosX((ImGui.GetWindowSize().X - 250) * 0.5f);
+        if (ImGui.Button($"{FontAwesome6.Rocket} BEGIN MISSION", new System.Numerics.Vector2(250, 45)))
         {
             isSimulationStarted = true;
             remainingMissionHours = missionDurationHours;
         }
+        
+        ImGui.PopStyleColor(3);
 
         if (missionDurationHours < 24)
         {
@@ -413,8 +593,11 @@ internal sealed class ImGuiController : IDisposable
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
         
-        // Load fonts - FONTOS: AddFontDefault el?tt kell meghívni!
+        // Load fonts
         LoadFonts(io);
+        
+        // Apply modern style
+        ApplyModernStyle();
 
         vertexBufferSize = 10_000;
         indexBufferSize = 2_000;
@@ -423,6 +606,118 @@ internal sealed class ImGuiController : IDisposable
         SetPerFrameImGuiData(1f / 60f);
         ImGui.NewFrame();
         frameBegun = true;
+    }
+
+    private static void ApplyModernStyle()
+    {
+        ImGuiStylePtr style = ImGui.GetStyle();
+        
+        // Modern színséma - Dark theme sötét kék-szürke árnyalatokkal
+        // Background colors - Sötét, modern háttér
+        style.Colors[(int)ImGuiCol.WindowBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.95f);
+        style.Colors[(int)ImGuiCol.ChildBg] = new Vector4(0.11f, 0.12f, 0.14f, 1.00f);
+        style.Colors[(int)ImGuiCol.PopupBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.98f);
+        style.Colors[(int)ImGuiCol.Border] = new Vector4(0.20f, 0.22f, 0.27f, 0.80f);
+        
+        // Title bar - Sötétkék accent
+        style.Colors[(int)ImGuiCol.TitleBg] = new Vector4(0.08f, 0.09f, 0.11f, 1.00f);
+        style.Colors[(int)ImGuiCol.TitleBgActive] = new Vector4(0.12f, 0.14f, 0.18f, 1.00f);
+        style.Colors[(int)ImGuiCol.TitleBgCollapsed] = new Vector4(0.08f, 0.09f, 0.11f, 0.75f);
+        
+        // Menu bar
+        style.Colors[(int)ImGuiCol.MenuBarBg] = new Vector4(0.10f, 0.11f, 0.13f, 1.00f);
+        
+        // Scrollbar - Diszkrét, modern
+        style.Colors[(int)ImGuiCol.ScrollbarBg] = new Vector4(0.09f, 0.10f, 0.12f, 0.60f);
+        style.Colors[(int)ImGuiCol.ScrollbarGrab] = new Vector4(0.25f, 0.27f, 0.32f, 1.00f);
+        style.Colors[(int)ImGuiCol.ScrollbarGrabHovered] = new Vector4(0.35f, 0.37f, 0.42f, 1.00f);
+        style.Colors[(int)ImGuiCol.ScrollbarGrabActive] = new Vector4(0.45f, 0.47f, 0.52f, 1.00f);
+        
+        // Frame (inputs, etc.) - Letisztult, finom keretekkel
+        style.Colors[(int)ImGuiCol.FrameBg] = new Vector4(0.14f, 0.15f, 0.17f, 1.00f);
+        style.Colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.18f, 0.19f, 0.22f, 1.00f);
+        style.Colors[(int)ImGuiCol.FrameBgActive] = new Vector4(0.22f, 0.23f, 0.26f, 1.00f);
+        
+        // Buttons - Modern kék accent színnel
+        style.Colors[(int)ImGuiCol.Button] = new Vector4(0.20f, 0.25f, 0.35f, 1.00f);
+        style.Colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.26f, 0.32f, 0.45f, 1.00f);
+        style.Colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.18f, 0.22f, 0.32f, 1.00f);
+        
+        // Header (collapsing headers, etc.)
+        style.Colors[(int)ImGuiCol.Header] = new Vector4(0.20f, 0.25f, 0.35f, 0.80f);
+        style.Colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.26f, 0.32f, 0.45f, 0.80f);
+        style.Colors[(int)ImGuiCol.HeaderActive] = new Vector4(0.22f, 0.27f, 0.38f, 1.00f);
+        
+        // Separator - Finom elválasztó vonal
+        style.Colors[(int)ImGuiCol.Separator] = new Vector4(0.20f, 0.22f, 0.27f, 1.00f);
+        style.Colors[(int)ImGuiCol.SeparatorHovered] = new Vector4(0.30f, 0.35f, 0.45f, 1.00f);
+        style.Colors[(int)ImGuiCol.SeparatorActive] = new Vector4(0.35f, 0.40f, 0.52f, 1.00f);
+        
+        // Tab colors - Modern, letisztult
+        style.Colors[(int)ImGuiCol.Tab] = new Vector4(0.14f, 0.16f, 0.20f, 1.00f);
+        style.Colors[(int)ImGuiCol.TabHovered] = new Vector4(0.26f, 0.32f, 0.45f, 1.00f);
+        
+        // Docking
+        style.Colors[(int)ImGuiCol.DockingPreview] = new Vector4(0.26f, 0.32f, 0.45f, 0.70f);
+        
+        // Text colors - Világos, jó kontraszttal
+        style.Colors[(int)ImGuiCol.Text] = new Vector4(0.92f, 0.93f, 0.95f, 1.00f);
+        style.Colors[(int)ImGuiCol.TextDisabled] = new Vector4(0.50f, 0.52f, 0.55f, 1.00f);
+        
+        // CheckBox
+        style.Colors[(int)ImGuiCol.CheckMark] = new Vector4(0.35f, 0.55f, 0.85f, 1.00f);
+        
+        // Slider
+        style.Colors[(int)ImGuiCol.SliderGrab] = new Vector4(0.35f, 0.55f, 0.85f, 1.00f);
+        style.Colors[(int)ImGuiCol.SliderGrabActive] = new Vector4(0.45f, 0.65f, 0.95f, 1.00f);
+        
+        // Resize grip
+        style.Colors[(int)ImGuiCol.ResizeGrip] = new Vector4(0.20f, 0.25f, 0.35f, 0.50f);
+        style.Colors[(int)ImGuiCol.ResizeGripHovered] = new Vector4(0.26f, 0.32f, 0.45f, 0.75f);
+        style.Colors[(int)ImGuiCol.ResizeGripActive] = new Vector4(0.32f, 0.40f, 0.55f, 1.00f);
+        
+        // Plot colors
+        style.Colors[(int)ImGuiCol.PlotLines] = new Vector4(0.61f, 0.61f, 0.61f, 1.00f);
+        style.Colors[(int)ImGuiCol.PlotLinesHovered] = new Vector4(1.00f, 0.43f, 0.35f, 1.00f);
+        style.Colors[(int)ImGuiCol.PlotHistogram] = new Vector4(0.90f, 0.70f, 0.00f, 1.00f);
+        style.Colors[(int)ImGuiCol.PlotHistogramHovered] = new Vector4(1.00f, 0.60f, 0.00f, 1.00f);
+        
+        // Style settings - Modern, lekerekített, tágas
+        style.WindowPadding = new Vector2(12, 12);
+        style.FramePadding = new Vector2(8, 4);
+        style.ItemSpacing = new Vector2(10, 6);
+        style.ItemInnerSpacing = new Vector2(6, 6);
+        style.IndentSpacing = 22;
+        style.ScrollbarSize = 14;
+        style.GrabMinSize = 12;
+        
+        // Rounded corners - Modern, lekerekített design
+        style.WindowRounding = 8.0f;
+        style.ChildRounding = 6.0f;
+        style.FrameRounding = 5.0f;
+        style.PopupRounding = 6.0f;
+        style.ScrollbarRounding = 9.0f;
+        style.GrabRounding = 4.0f;
+        style.TabRounding = 5.0f;
+        
+        // Borders
+        style.WindowBorderSize = 1.0f;
+        style.ChildBorderSize = 1.0f;
+        style.PopupBorderSize = 1.0f;
+        style.FrameBorderSize = 0.0f;
+        style.TabBorderSize = 0.0f;
+        
+        // Additional tweaks
+        style.WindowTitleAlign = new Vector2(0.02f, 0.50f);
+        style.ButtonTextAlign = new Vector2(0.50f, 0.50f);
+        style.SelectableTextAlign = new Vector2(0.00f, 0.50f);
+        style.DisplaySafeAreaPadding = new Vector2(4, 4);
+        
+        // Anti-aliasing
+        style.AntiAliasedLines = true;
+        style.AntiAliasedFill = true;
+        
+        Console.WriteLine("? Modern UI style applied!");
     }
 
     private unsafe void LoadFonts(ImGuiIOPtr io)
